@@ -1,0 +1,39 @@
+{
+  "name": "mutable-webtorrent",
+  "version": "1.0.0",
+  "description": "Create / Load / Seed mutable webtorrents (BEP 46)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RangerMauve/mutable-webtorrent.git"
+  },
+  "keywords": [
+    "webtorrent",
+    "torrent",
+    "mutable",
+    "update",
+    "archive",
+    "bep46"
+  ],
+  "author": "rangermauve",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/RangerMauve/mutable-webtorrent/issues"
+  },
+  "homepage": "https://github.com/RangerMauve/mutable-webtorrent#readme",
+  "dependencies": {
+    "ed25519-supercop": "^1.2.0",
+    "webtorrent": "^0.103.0"
+  },
+  "devDependencies": {
+    "eslint": "^5.11.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-node": "^8.0.0",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0"
+  }
+}
