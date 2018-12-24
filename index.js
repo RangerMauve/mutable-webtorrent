@@ -30,27 +30,44 @@ class MutableWebTorrent extends WebTorrent {
     super(finalOptions)
   }
 
-  add (magnetURI, callback) {
+  add (magnetURI, options, callback) {
+    if (!callback) {
+      if (typeof options === 'function') {
+        callback = options
+        options = null
+      } else {
+        callback = () => void 0
+      }
+    }
+
     if (typeof magnetURI !== 'string') {
-      return super.add(magnetURI, callback)
+      return super.add(magnetURI, options, callback)
     }
 
     const parsed = new URL(magnetURI)
 
-    const isBTPK = parsed.searchParams.keys().find((param) => param.startsWith(BTPK_PREFIX))
+    const xs = parsed.searchParams.get('xs')
 
-    if (!isBTPK) return super.add(magnetURI, callback)
+    const isMutableLink = xs && xs.startsWith(BTPK_PREFIX)
 
-    const publicKeyString = isBTPK.slice(BTPK_PREFIX.length)
+    if (!isMutableLink) return super.add(magnetURI, options, callback)
 
-    this.resolve(publicKeyString, (err, { infohash }) => {
-      if (err) return callback(err)
+    const publicKeyString = xs.slice(BTPK_PREFIX.length)
 
-      const urn = `${BITH_PREFIX}${infohash}`
+    this.resolve(publicKeyString, (err, res) => {
+      if (err) return this.emit('error', err)
+      if (!res) return this.emit('error', new Error('Unable to resolve magnet link'))
 
-      parsed.searchParams.set(urn, '')
+      const urn = `${BITH_PREFIX}${res.infoHash.toString('hex')}`
 
-      super.add(parsed.href, callback)
+      const finalMangetURI = magnetURI + `&xt=${urn}`
+
+      super.add(finalMangetURI, options, (torrent) => {
+        torrent.publicKey = Buffer.from(publicKeyString, 'hex')
+        torrent.sequence = res.sequence || 0
+
+        callback(torrent)
+      })
     })
   }
 
@@ -63,17 +80,17 @@ class MutableWebTorrent extends WebTorrent {
       if (err) return callback(err)
 
       try {
-        const infohash = res.v.ih
+        const infoHash = res.v.ih
         const sequence = res.seq
 
-        return callback(null, { infohash, sequence })
+        return callback(null, { infoHash, sequence })
       } catch (parseErr) {
         return callback(parseErr)
       }
     })
   }
 
-  publish (publicKeyString, secretKeyString, infohashString, options, callback) {
+  publish (publicKeyString, secretKeyString, infoHashString, options, callback) {
     if (!callback) {
       callback = options
       options = { sequence: 0 }
@@ -90,7 +107,7 @@ class MutableWebTorrent extends WebTorrent {
       k: buffPubKey,
       // seq: 0,
       v: {
-        ih: Buffer.from(infohashString, 'hex')
+        ih: Buffer.from(infoHashString, 'hex')
       },
       sign: function (buf) {
         return ed.sign(buf, buffPubKey, buffSecKey)
@@ -100,15 +117,19 @@ class MutableWebTorrent extends WebTorrent {
     dht.get(targetID, function (err, res) {
       if (err) return callback(err)
 
-      var sequence = res.seq || options.sequence
+      var sequence = (res && res.seq) ? res.seq + 1 : options.sequence
       opts.seq = sequence
 
       dht.put(opts, function (putErr, hash) {
         if (putErr) return callback(putErr)
 
-        const magnetURI = `magnet?${BTPK_PREFIX}${publicKeyString}`
+        const magnetURI = `magnet:?xs=${BTPK_PREFIX}${publicKeyString}`
 
-        callback(null, magnetURI)
+        callback(null, {
+          magnetURI,
+          infohash: infoHashString,
+          sequence
+        })
       })
     })
   }
