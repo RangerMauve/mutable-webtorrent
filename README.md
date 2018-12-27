@@ -35,11 +35,21 @@ client.on('torrent', (torrent) => {
     if (err) throw err
     console.log('Published torrent', magnetURI, '- Version', sequence)
 
+
     client.resolve(publicKey, (err, res) => {
       if (err) throw err
 
       console.log('Resolved latest version:', res)
+
+      republish()
     })
+
+    function republish() {
+      console.log('Republishing version to the DHT')
+      client.republish(publicKey, () => {
+        setTimeout(republish, 6000)
+      })
+    }
   })
 })
 
@@ -58,4 +68,5 @@ Extends the [WebTorrent](https://github.com/webtorrent/webtorrent/blob/master/do
 - `add(magnetURI, callback)` now takes magnet URIs using the new `uri:btpk:` scheme for resolving mutable torrents. It also adds a `publicKey` buffer to torrents loaded from a mutable magnet link.
 - `resolve(publicKeyString, callback)` resolves a public key to an object with the latest `infoHash` it's pointing to as well as the `sequence` number.
 - `publish(publicKeyString, secretKeyString, infohash, [options], callback)` publishes your latest version information on the DHT. The options can include the `sequence` you wish to publish at. Note that nodes in the DHT will ignore any sequences older than what they currently have. It results in an object with the `infoHash`, `magnetURI`, and `sequence` number for the published torrent. Check out how [BEP 44](https://github.com/lmatteis/bittorrent.org/blob/master/beps/bep_0044.rst) works for details.
-- `createKeypair()` creates a `publicKey` and `secretKey` pair that can be used for publishing content.
+- `republish(publicKey, callback)` republishes the current version for a given public key. This doesn't require the private key since it takes whatever is currently on the DHT. This is how you seed the version data in the DHT.
+- `createKeypair()` returns an object with a `publicKey` and `secretKey` pair that can be used for publishing content.

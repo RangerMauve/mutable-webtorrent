@@ -97,13 +97,13 @@ class MutableWebTorrent extends WebTorrent {
     } else if (!options) {
       options = { sequence: 0 }
     }
-    var buffPubKey = Buffer.from(publicKeyString, 'hex')
-    var buffSecKey = Buffer.from(secretKeyString, 'hex')
-    var targetID = crypto.createHash('sha1').update(buffPubKey).digest('hex')
+    const buffPubKey = Buffer.from(publicKeyString, 'hex')
+    const buffSecKey = Buffer.from(secretKeyString, 'hex')
+    const targetID = crypto.createHash('sha1').update(buffPubKey).digest('hex')
 
-    var dht = this.dht
+    const dht = this.dht
 
-    var opts = {
+    const opts = {
       k: buffPubKey,
       // seq: 0,
       v: {
@@ -117,7 +117,7 @@ class MutableWebTorrent extends WebTorrent {
     dht.get(targetID, function (err, res) {
       if (err) return callback(err)
 
-      var sequence = (res && res.seq) ? res.seq + 1 : options.sequence
+      const sequence = (res && res.seq) ? res.seq + 1 : options.sequence
       opts.seq = sequence
 
       dht.put(opts, function (putErr, hash) {
@@ -130,6 +130,29 @@ class MutableWebTorrent extends WebTorrent {
           infohash: infoHashString,
           sequence
         })
+      })
+    })
+  }
+
+  republish (publicKeyString, callback) {
+    if (!callback) {
+      callback = () => void 0
+    }
+
+    const buffPubKey = Buffer.from(publicKeyString, 'hex')
+    const targetID = crypto.createHash('sha1').update(buffPubKey).digest('hex')
+
+    const dht = this.dht
+
+    dht.get(targetID, (err, res) => {
+      if (err) {
+        callback(err)
+        callback = () => void 0
+        return
+      }
+
+      dht.put(res, (err) => {
+        callback(err)
       })
     })
   }

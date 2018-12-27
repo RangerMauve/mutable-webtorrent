@@ -17,12 +17,22 @@ client.on('torrent', (torrent) => {
     if (err) throw err
     console.log('Published torrent', magnetURI, '- Version', sequence)
 
+    function republish () {
+      console.log('Republishing')
+      client.republish(publicKey, () => {
+        console.log('Scheduling republish for 10 mins')
+        setTimeout(republish, 10 * 60 * 1000)
+      })
+    }
+
     client.resolve(publicKey, (err, { infoHash, sequence }) => {
       if (err) throw err
 
       console.log('Resolved latest version:', infoHash.toString('hex'), sequence)
 
       console.log('Seeding...')
+
+      republish()
     })
   })
 })
