@@ -1,27 +1,37 @@
 const WebTorrent = require('webtorrent')
-const ed = require('ed25519-supercop')
 const crypto = require('crypto')
+const sodium = require('sodium-universal')
 
 const BTPK_PREFIX = 'urn:btpk:'
 const BITH_PREFIX = 'urn:btih:'
+
+function verify (signature, message, publicKey) {
+  return sodium.crypto_sign_verify_detached(signature, message, publicKey)
+}
+
+function sign (message, publicKey, secretKey) {
+  const signature = Buffer.alloc(sodium.crypto_sign_BYTES)
+  sodium.crypto_sign_detached(signature, message, secretKey)
+  return signature
+}
 
 class MutableWebTorrent extends WebTorrent {
   constructor (options) {
     let finalOptions = options || {
       dht: {
-        verify: ed.verify
+        verify
       }
     }
 
     if (options) {
       if (options.dht) {
-        const dht = { verify: ed.verify, ...options.dht }
+        const dht = { verify, ...options.dht }
         finalOptions = { ...options, dht }
       } else {
         finalOptions = {
           ...options,
           dht: {
-            verify: ed.verify
+            verify
           }
         }
       }
@@ -36,7 +46,7 @@ class MutableWebTorrent extends WebTorrent {
         callback = options
         options = null
       } else {
-        callback = () => void 0
+        callback = noop
       }
     }
 
@@ -110,7 +120,7 @@ class MutableWebTorrent extends WebTorrent {
         ih: Buffer.from(infoHashString, 'hex')
       },
       sign: function (buf) {
-        return ed.sign(buf, buffPubKey, buffSecKey)
+        return sign(buf, buffPubKey, buffSecKey)
       }
     }
 
@@ -136,7 +146,7 @@ class MutableWebTorrent extends WebTorrent {
 
   republish (publicKeyString, callback) {
     if (!callback) {
-      callback = () => void 0
+      callback = () => noop
     }
 
     const buffPubKey = Buffer.from(publicKeyString, 'hex')
@@ -147,7 +157,7 @@ class MutableWebTorrent extends WebTorrent {
     dht.get(targetID, (err, res) => {
       if (err) {
         callback(err)
-        callback = () => void 0
+        callback = noop
         return
       }
 
@@ -157,14 +167,18 @@ class MutableWebTorrent extends WebTorrent {
     })
   }
 
-  createKeypair () {
-    const { publicKey, secretKey } = ed.createKeyPair(ed.createSeed())
+  createKeypair (seed) {
+    const publicKey = Buffer.alloc(sodium.crypto_sign_PUBLICKEYBYTES)
+    const secretKey = Buffer.alloc(sodium.crypto_sign_SECRETKEYBYTES)
 
-    return {
-      publicKey: publicKey.toString('hex'),
-      secretKey: secretKey.toString('hex')
-    }
+    if (seed) {
+      sodium.crypto_sign_seed_keypair(publicKey, secretKey, seed)
+    } else { sodium.crypto_sign_keypair(publicKey, secretKey) }
+
+    return { publicKey: publicKey.toString('hex'), secretKey: secretKey.toString('hex') }
   }
 }
 
 module.exports = MutableWebTorrent
+
+function noop () {}

@@ -4,7 +4,7 @@ const client = new MutableWebTorrent()
 
 const { publicKey, secretKey } = client.createKeypair()
 
-console.log('Created Keypair: Public [', publicKey, '] Secret [', secretKey, ']')
+console.log('Created Keypair: Public <', publicKey, '> Secret <', secretKey, '>')
 
 client.on('torrent', (torrent) => {
   const { infoHash, files } = torrent

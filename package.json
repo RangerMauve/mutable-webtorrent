@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/RangerMauve/mutable-webtorrent#readme",
   "dependencies": {
-    "ed25519-supercop": "^1.2.0",
+    "sodium-universal": "^2.0.0",
     "webtorrent": "^0.103.0"
   },
   "devDependencies": {
