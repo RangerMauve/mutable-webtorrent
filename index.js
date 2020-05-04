@@ -1,6 +1,6 @@
 const WebTorrent = require('webtorrent')
-const crypto = require('crypto')
 const sodium = require('sodium-universal')
+const sha1 = require('simple-sha1')
 
 const BTPK_PREFIX = 'urn:btpk:'
 const BITH_PREFIX = 'urn:btih:'
@@ -84,19 +84,19 @@ class MutableWebTorrent extends WebTorrent {
   resolve (publicKeyString, callback) {
     const publicKey = Buffer.from(publicKeyString, 'hex')
 
-    const targetID = crypto.createHash('sha1').update(publicKey).digest('hex')
+    sha1(publicKey, (targetID) => {
+      this.dht.get(targetID, (err, res) => {
+        if (err) return callback(err)
 
-    this.dht.get(targetID, function (err, res) {
-      if (err) return callback(err)
+        try {
+          const infoHash = res.v.ih
+          const sequence = res.seq
 
-      try {
-        const infoHash = res.v.ih
-        const sequence = res.seq
-
-        return callback(null, { infoHash, sequence })
-      } catch (parseErr) {
-        return callback(parseErr)
-      }
+          return callback(null, { infoHash, sequence })
+        } catch (parseErr) {
+          return callback(parseErr)
+        }
+      })
     })
   }
 
@@ -109,36 +109,37 @@ class MutableWebTorrent extends WebTorrent {
     }
     const buffPubKey = Buffer.from(publicKeyString, 'hex')
     const buffSecKey = Buffer.from(secretKeyString, 'hex')
-    const targetID = crypto.createHash('sha1').update(buffPubKey).digest('hex')
 
-    const dht = this.dht
+    sha1(buffPubKey, (targetID) => {
+      const dht = this.dht
 
-    const opts = {
-      k: buffPubKey,
-      // seq: 0,
-      v: {
-        ih: Buffer.from(infoHashString, 'hex')
-      },
-      sign: function (buf) {
-        return sign(buf, buffPubKey, buffSecKey)
+      const opts = {
+        k: buffPubKey,
+        // seq: 0,
+        v: {
+          ih: Buffer.from(infoHashString, 'hex')
+        },
+        sign: (buf) => {
+          return sign(buf, buffPubKey, buffSecKey)
+        }
       }
-    }
 
-    dht.get(targetID, function (err, res) {
-      if (err) return callback(err)
+      dht.get(targetID, (err, res) => {
+        if (err) return callback(err)
 
-      const sequence = (res && res.seq) ? res.seq + 1 : options.sequence
-      opts.seq = sequence
+        const sequence = (res && res.seq) ? res.seq + 1 : options.sequence
+        opts.seq = sequence
 
-      dht.put(opts, function (putErr, hash) {
-        if (putErr) return callback(putErr)
+        dht.put(opts, (putErr, hash) => {
+          if (putErr) return callback(putErr)
 
-        const magnetURI = `magnet:?xs=${BTPK_PREFIX}${publicKeyString}`
+          const magnetURI = `magnet:?xs=${BTPK_PREFIX}${publicKeyString}`
 
-        callback(null, {
-          magnetURI,
-          infohash: infoHashString,
-          sequence
+          callback(null, {
+            magnetURI,
+            infohash: infoHashString,
+            sequence
+          })
         })
       })
     })
@@ -150,19 +151,20 @@ class MutableWebTorrent extends WebTorrent {
     }
 
     const buffPubKey = Buffer.from(publicKeyString, 'hex')
-    const targetID = crypto.createHash('sha1').update(buffPubKey).digest('hex')
 
-    const dht = this.dht
+    sha1(buffPubKey, (targetID) => {
+      const dht = this.dht
 
-    dht.get(targetID, (err, res) => {
-      if (err) {
-        callback(err)
-        callback = noop
-        return
-      }
+      dht.get(targetID, (err, res) => {
+        if (err) {
+          callback(err)
+          callback = noop
+          return
+        }
 
-      dht.put(res, (err) => {
-        callback(err)
+        dht.put(res, (err) => {
+          callback(err)
+        })
       })
     })
   }
