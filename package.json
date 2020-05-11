@@ -27,7 +27,7 @@
   "dependencies": {
     "simple-sha1": "^3.0.1",
     "sodium-universal": "^2.0.0",
-    "webtorrent": "^0.108.1"
+    "webtorrent": "github:rangermauve/webtorrent#nat-traversal"
   },
   "devDependencies": {
     "eslint": "^5.11.0",
