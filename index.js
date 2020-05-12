@@ -103,9 +103,9 @@ class MutableWebTorrent extends WebTorrent {
   publish (publicKeyString, secretKeyString, infoHashString, options, callback) {
     if (!callback) {
       callback = options
-      options = { sequence: 0 }
+      options = { sequence: 1 }
     } else if (!options) {
-      options = { sequence: 0 }
+      options = { sequence: 1 }
     }
     const buffPubKey = Buffer.from(publicKeyString, 'hex')
     const buffSecKey = Buffer.from(secretKeyString, 'hex')

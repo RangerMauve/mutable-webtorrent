@@ -2,7 +2,8 @@ const MutableWebTorrent = require('..')
 
 const client = new MutableWebTorrent()
 
-const { publicKey, secretKey } = client.createKeypair()
+const seed = Buffer.from('DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF', 'hex')
+const { publicKey, secretKey } = client.createKeypair(seed)
 
 console.log('Created Keypair: Public <', publicKey, '> Secret <', secretKey, '>')
 
